@@ -1,8 +1,6 @@
 import { getAddress } from 'viem'
 import type { Address } from 'viem'
 
-import type { DepositParams } from '../core/types'
-
 export interface DepositStartResponse {
   to: Address
   method: string
@@ -61,7 +59,12 @@ export const fetchDepositStart = async (params: {
     throw new Error(`Failed to fetch deposit calldata (${response.status} ${response.statusText}): ${body}`)
   }
 
-  const json = await response.json()
+  const json = (await response.json()) as {
+    to: string
+    method: string
+    data: `0x${string}`
+    value: string
+  }
   return {
     to: getAddress(json.to),
     method: json.method,

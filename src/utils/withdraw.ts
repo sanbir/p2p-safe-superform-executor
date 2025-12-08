@@ -66,7 +66,12 @@ export const fetchWithdrawStart = async (params: {
     throw new Error(`Failed to fetch withdraw calldata (${response.status} ${response.statusText}): ${body}`)
   }
 
-  const json = await response.json()
+  const json = (await response.json()) as {
+    to: string
+    method: string
+    data: `0x${string}`
+    value: string
+  }
   return {
     to: getAddress(json.to),
     method: json.method,
