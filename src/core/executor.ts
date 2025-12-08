@@ -11,7 +11,13 @@ import {
   rolesModuleAbi,
   superformRouterSingleWithdrawAbi
 } from '../utils/abis'
+import {
+  buildProxyBatchClaimCalldata,
+  decodeRewardsDistributorBatchClaim,
+  fetchProtocolRewardsClaim as fetchProtocolRewardsClaimFromApi
+} from '../utils/rewards'
 import type {
+  BatchClaimParams,
   DepositParams,
   ExecutorConfig,
   PredictProxyAddressParams,
@@ -40,10 +46,10 @@ export class P2pSafeSuperformExecutor {
         config.p2pSuperformProxyFactoryAddress ?? constants.P2P_SUPERFORM_PROXY_FACTORY_ADDRESS,
       p2pModuleAddress:
         config.p2pModuleAddress ??
-        config.walletClient.account?.address ??
-        constants.P2P_ADDRESS,
+        config.walletClient.account?.address ?? constants.P2P_ADDRESS,
       defaultRoleKey: config.defaultRoleKey ?? constants.DEFAULT_ROLE_KEY,
-      validateRolesTarget: config.validateRolesTarget ?? true
+      validateRolesTarget: config.validateRolesTarget ?? true,
+      superformApiKey: config.superformApiKey ?? process.env.SF_API_KEY
     }
     this.log = config.logger ?? ((message: string) => console.info(message))
   }
@@ -139,6 +145,35 @@ export class P2pSafeSuperformExecutor {
       rolesAddress: params.rolesAddress,
       target: params.p2pSuperformProxyAddress,
       data: withdrawData,
+      value: this.normalizeBigInt(params.value, 'value', 0n),
+      roleKey: params.roleKey,
+      shouldRevertOnFailure: params.shouldRevertOnFailure,
+      operation: params.operation,
+      expectedSafe: params.safeAddress
+    })
+  }
+
+  async batchClaim(params: BatchClaimParams): Promise<Hex> {
+    const claim = await this.fetchProtocolRewardsClaim(params.p2pSuperformProxyAddress)
+    const decoded = decodeRewardsDistributorBatchClaim(claim.transactionData)
+
+    const expectedProxy = getAddress(params.p2pSuperformProxyAddress)
+    if (decoded.receiver !== expectedProxy) {
+      throw new Error(
+        `Claim receiver ${decoded.receiver} does not match proxy ${expectedProxy} from params`
+      )
+    }
+
+    const { data } = buildProxyBatchClaimCalldata(decoded)
+
+    this.log(
+      `➡️  Batch claim via Roles ${params.rolesAddress} -> Safe ${params.safeAddress} -> Proxy ${params.p2pSuperformProxyAddress}`
+    )
+
+    return this.executeViaRoles({
+      rolesAddress: params.rolesAddress,
+      target: params.p2pSuperformProxyAddress,
+      data,
       value: this.normalizeBigInt(params.value, 'value', 0n),
       roleKey: params.roleKey,
       shouldRevertOnFailure: params.shouldRevertOnFailure,
@@ -337,5 +372,22 @@ export class P2pSafeSuperformExecutor {
   private superformIdToAddress(superformId: bigint): Address {
     const hex = superformId.toString(16).padStart(40, '0')
     return getAddress(`0x${hex}`)
+  }
+
+  private async fetchProtocolRewardsClaim(user: Address) {
+    const chainId = this.walletClient.chain?.id
+    if (!chainId) {
+      throw new Error('walletClient.chain.id is required to fetch rewards claim data')
+    }
+    const apiKey = this.config.superformApiKey
+    if (!apiKey) {
+      throw new Error('superformApiKey (or SF_API_KEY in env) is required to fetch rewards claim data')
+    }
+
+    return fetchProtocolRewardsClaimFromApi({
+      chainId,
+      user,
+      apiKey
+    })
   }
 }

@@ -5,6 +5,7 @@ import { loadEnv } from './config/env'
 import * as constants from './constants'
 import { P2pSafeSuperformExecutor } from './core/executor'
 import type {
+  BatchClaimParams,
   DepositParams,
   ExecutorConfig,
   PredictProxyAddressParams,
@@ -25,6 +26,7 @@ export type {
   ExecutorConfig,
   PredictProxyAddressParams,
   SafeOperationValue,
+  BatchClaimParams,
   WithdrawAccruedRewardsParams,
   WithdrawParams
 }
@@ -51,6 +53,7 @@ export const createExecutorFromEnv = (params: {
 
   return new P2pSafeSuperformExecutor({
     walletClient,
-    publicClient
+    publicClient,
+    superformApiKey: env.SF_API_KEY
   })
 }

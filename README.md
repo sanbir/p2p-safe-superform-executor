@@ -14,6 +14,13 @@ For the convenience helper `createExecutorFromEnv`, set:
 
 - `RPC_URL` — HTTPS RPC endpoint
 - `PRIVATE_KEY` — 0x-prefixed private key for the P2P module wallet (the address whitelisted in Roles)
+- `SF_API_KEY` — Superform API key (required for `batchClaim`)
+
+## Test
+
+```bash
+npm test
+```
 
 ## Usage
 
@@ -52,6 +59,13 @@ await executor.withdrawAccruedRewards({
   rolesAddress,
   p2pSuperformProxyAddress,
   superformCalldata // rewards withdraw calldata
+})
+
+// Fetch rewards claim calldata from Superform API and forward to proxy via Roles
+await executor.batchClaim({
+  safeAddress,
+  rolesAddress,
+  p2pSuperformProxyAddress
 })
 
 // Note: withdrawAccruedRewards will decode the calldata, verify the accrued

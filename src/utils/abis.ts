@@ -82,6 +82,18 @@ export const p2pSuperformProxyAbi = [
       { name: '_asset', type: 'address' }
     ],
     outputs: [{ name: '', type: 'int256' }]
+  },
+  {
+    type: 'function',
+    name: 'batchClaim',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: '_periodIds', type: 'uint256[]' },
+      { name: '_rewardTokens', type: 'address[][]' },
+      { name: '_amountsClaimed', type: 'uint256[][]' },
+      { name: '_proofs', type: 'bytes32[][]' }
+    ],
+    outputs: []
   }
 ] as const satisfies Abi
 
@@ -131,6 +143,22 @@ export const erc4626Abi = [
     stateMutability: 'view',
     inputs: [],
     outputs: [{ name: '', type: 'address' }]
+  }
+] as const satisfies Abi
+
+export const rewardsDistributorAbi = [
+  {
+    type: 'function',
+    name: 'batchClaim',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'receiver_', type: 'address' },
+      { name: 'periodIds_', type: 'uint256[]' },
+      { name: 'rewardTokens_', type: 'address[][]' },
+      { name: 'amountsClaimed_', type: 'uint256[][]' },
+      { name: 'proofs_', type: 'bytes32[][]' }
+    ],
+    outputs: []
   }
 ] as const satisfies Abi
 

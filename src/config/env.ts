@@ -11,7 +11,8 @@ const envSchema = z.object({
     .regex(/^0x[0-9a-fA-F]{64}$/u, {
       message: 'PRIVATE_KEY must be a 0x-prefixed 32-byte hex string'
     })
-    .optional()
+    .optional(),
+  SF_API_KEY: z.string().optional()
 })
 
 export type EnvConfig = z.infer<typeof envSchema>

@@ -9,6 +9,7 @@ export interface ExecutorConfig<TTransport extends Transport = Transport, TChain
   p2pModuleAddress?: Address
   defaultRoleKey?: Hex
   logger?: (message: string) => void
+  superformApiKey?: string
   /**
    * Validate that the provided Roles module is wired to the expected Safe address.
    * Disable if you want to skip the additional read calls.
@@ -50,6 +51,16 @@ export interface WithdrawAccruedRewardsParams {
   rolesAddress: Address
   p2pSuperformProxyAddress: Address
   superformCalldata: Hex
+  value?: bigint | number
+  roleKey?: Hex
+  shouldRevertOnFailure?: boolean
+  operation?: SafeOperationValue
+}
+
+export interface BatchClaimParams {
+  safeAddress: Address
+  rolesAddress: Address
+  p2pSuperformProxyAddress: Address
   value?: bigint | number
   roleKey?: Hex
   shouldRevertOnFailure?: boolean
