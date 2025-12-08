@@ -49,7 +49,18 @@ export interface WithdrawParams {
   safeAddress: Address
   rolesAddress: Address
   p2pSuperformProxyAddress: Address
-  superformCalldata: Hex
+  superformId: string
+  vaultId: string
+  superpositionsAmountIn: string
+  toTokenAddress: Address
+  bridgeSlippage: number
+  swapSlippage: number
+  positiveSlippage: number
+  isErc20: boolean
+  routeType?: string
+  filterSwapRoutes?: boolean
+  isPartOfMultiVault?: boolean
+  needInsurance?: boolean
   value?: bigint | number
   roleKey?: Hex
   shouldRevertOnFailure?: boolean

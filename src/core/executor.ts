@@ -17,6 +17,7 @@ import {
   decodeRewardsDistributorBatchClaim,
   fetchProtocolRewardsClaim as fetchProtocolRewardsClaimFromApi
 } from '../utils/rewards'
+import { buildWithdrawBody, fetchWithdrawStart } from '../utils/withdraw'
 import type {
   BatchClaimParams,
   DepositParams,
@@ -128,10 +129,44 @@ export class P2pSafeSuperformExecutor {
   }
 
   async withdraw(params: WithdrawParams): Promise<Hex> {
+    const chainId = this.walletClient.chain?.id
+    if (!chainId) {
+      throw new Error('walletClient.chain.id is required for withdraw')
+    }
+    const apiKey = this.config.superformApiKey
+    if (!apiKey) {
+      throw new Error('superformApiKey (or SF_API_KEY in env) is required for withdraw')
+    }
+
+    const body = buildWithdrawBody({
+      userAddress: params.p2pSuperformProxyAddress,
+      refundAddress: params.p2pSuperformProxyAddress,
+      superformId: params.superformId,
+      superpositionsAmountIn: params.superpositionsAmountIn,
+      superpositionsChainId: chainId,
+      toChainId: chainId,
+      toTokenAddress: params.toTokenAddress,
+      vaultId: params.vaultId,
+      bridgeSlippage: params.bridgeSlippage,
+      swapSlippage: params.swapSlippage,
+      positiveSlippage: params.positiveSlippage,
+      isErc20: params.isErc20,
+      routeType: params.routeType,
+      filterSwapRoutes: params.filterSwapRoutes,
+      isPartOfMultiVault: params.isPartOfMultiVault,
+      needInsurance: params.needInsurance
+    })
+
+    const withdrawStart = await fetchWithdrawStart({
+      apiKey,
+      body,
+      fetcher: this.fetcher
+    })
+
     const withdrawData = encodeFunctionData({
       abi: p2pSuperformProxyAbi,
       functionName: 'withdraw',
-      args: [params.superformCalldata]
+      args: [withdrawStart.data]
     })
 
     this.log(
@@ -142,7 +177,11 @@ export class P2pSafeSuperformExecutor {
       rolesAddress: params.rolesAddress,
       target: params.p2pSuperformProxyAddress,
       data: withdrawData,
-      value: this.normalizeBigInt(params.value, 'value', 0n),
+      value: this.normalizeBigInt(
+        params.value ?? (withdrawStart.value ? BigInt(withdrawStart.value) : undefined),
+        'value',
+        0n
+      ),
       roleKey: params.roleKey,
       shouldRevertOnFailure: params.shouldRevertOnFailure,
       operation: params.operation,
