@@ -1,23 +1,28 @@
 import type { Account, Address, Hex } from 'viem'
-import { encodeFunctionData, getAddress } from 'viem'
+import { decodeFunctionData, encodeFunctionData, getAddress } from 'viem'
 
 import * as constants from '../constants'
 import {
   SafeOperation,
   type SafeOperationValue,
+  erc4626Abi,
   p2pSuperformProxyAbi,
   p2pSuperformProxyFactoryAbi,
-  rolesModuleAbi
+  rolesModuleAbi,
+  superformRouterSingleWithdrawAbi
 } from '../utils/abis'
 import type {
   DepositParams,
   ExecutorConfig,
   PredictProxyAddressParams,
   RolesExecutionParams,
+  WithdrawAccruedRewardsParams,
   WithdrawParams
 } from './types'
 
 export class P2pSafeSuperformExecutor {
+  private static readonly ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+
   private readonly walletClient: ExecutorConfig['walletClient']
   private readonly publicClient: ExecutorConfig['publicClient']
   private readonly config: Required<
@@ -81,6 +86,53 @@ export class P2pSafeSuperformExecutor {
 
     this.log(
       `➡️  Withdraw via Roles ${params.rolesAddress} -> Safe ${params.safeAddress} -> Proxy ${params.p2pSuperformProxyAddress}`
+    )
+
+    return this.executeViaRoles({
+      rolesAddress: params.rolesAddress,
+      target: params.p2pSuperformProxyAddress,
+      data: withdrawData,
+      value: this.normalizeBigInt(params.value, 'value', 0n),
+      roleKey: params.roleKey,
+      shouldRevertOnFailure: params.shouldRevertOnFailure,
+      operation: params.operation,
+      expectedSafe: params.safeAddress
+    })
+  }
+
+  async withdrawAccruedRewards(params: WithdrawAccruedRewardsParams): Promise<Hex> {
+    const parsed = this.decodeSingleDirectSingleVaultWithdraw(params.superformCalldata)
+    const { superformId, amount, liqRequest } = parsed.superformData
+    const asset = await this.resolveAssetForWithdraw(superformId, liqRequest.token)
+
+    const accruedRewards = (await this.publicClient.readContract({
+      address: params.p2pSuperformProxyAddress,
+      abi: p2pSuperformProxyAbi,
+      functionName: 'calculateAccruedRewards',
+      args: [superformId, asset]
+    })) as bigint
+
+    if (accruedRewards <= 0n) {
+      throw new Error(
+        `No accrued rewards available for superformId=${superformId.toString()} asset=${asset}; got ${accruedRewards.toString()}`
+      )
+    }
+
+    const accruedRewardsPositive = BigInt(accruedRewards)
+    if (amount !== accruedRewardsPositive) {
+      throw new Error(
+        `superformCalldata amount (${amount}) must equal accrued rewards (${accruedRewardsPositive})`
+      )
+    }
+
+    const withdrawData = encodeFunctionData({
+      abi: p2pSuperformProxyAbi,
+      functionName: 'withdrawAccruedRewards',
+      args: [params.superformCalldata]
+    })
+
+    this.log(
+      `➡️  Withdraw accrued rewards via Roles ${params.rolesAddress} -> Safe ${params.safeAddress} -> Proxy ${params.p2pSuperformProxyAddress}`
     )
 
     return this.executeViaRoles({
@@ -230,5 +282,60 @@ export class P2pSafeSuperformExecutor {
         `Failed to verify Roles wiring for ${rolesAddress}: ${(error as Error).message}`
       )
     }
+  }
+
+  private decodeSingleDirectSingleVaultWithdraw(data: Hex) {
+    const decoded = decodeFunctionData({
+      abi: superformRouterSingleWithdrawAbi,
+      data
+    })
+
+    if (decoded.functionName !== 'singleDirectSingleVaultWithdraw') {
+      throw new Error('superformCalldata selector must be singleDirectSingleVaultWithdraw')
+    }
+
+    // decoded.args[0] is the req_ struct
+    return decoded.args[0] as {
+      superformData: {
+        superformId: bigint
+        amount: bigint
+        outputAmount: bigint
+        maxSlippage: bigint
+        liqRequest: {
+          txData: Hex
+          token: Address
+          interimToken: Address
+          bridgeId: number
+          liqDstChainId: bigint
+          nativeAmount: bigint
+        }
+        permit2data: Hex
+        hasDstSwap: boolean
+        retain4626: boolean
+        receiverAddress: Address
+        receiverAddressSP: Address
+        extraFormData: Hex
+      }
+    }
+  }
+
+  private async resolveAssetForWithdraw(superformId: bigint, liqRequestToken: Address): Promise<Address> {
+    if (getAddress(liqRequestToken) !== P2pSafeSuperformExecutor.ZERO_ADDRESS) {
+      return getAddress(liqRequestToken)
+    }
+
+    const superformAsAddress = this.superformIdToAddress(superformId)
+    const asset = await this.publicClient.readContract({
+      address: superformAsAddress,
+      abi: erc4626Abi,
+      functionName: 'asset'
+    })
+
+    return getAddress(asset as Address)
+  }
+
+  private superformIdToAddress(superformId: bigint): Address {
+    const hex = superformId.toString(16).padStart(40, '0')
+    return getAddress(`0x${hex}`)
   }
 }

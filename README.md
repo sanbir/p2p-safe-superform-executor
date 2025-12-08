@@ -46,6 +46,17 @@ await executor.withdraw({
   p2pSuperformProxyAddress,
   superformCalldata
 })
+
+await executor.withdrawAccruedRewards({
+  safeAddress,
+  rolesAddress,
+  p2pSuperformProxyAddress,
+  superformCalldata // rewards withdraw calldata
+})
+
+// Note: withdrawAccruedRewards will decode the calldata, verify the accrued
+// rewards on-chain via calculateAccruedRewards, and only send the Roles tx if
+// the provided amount matches the accrued rewards.
 ```
 
 Default constants (including `P2P_SUPERFORM_PROXY_FACTORY_ADDRESS`) are exported from `constants`, and you can override the role key or factory address when constructing the executor if needed.

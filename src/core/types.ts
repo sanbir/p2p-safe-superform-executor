@@ -45,6 +45,17 @@ export interface WithdrawParams {
   operation?: SafeOperationValue
 }
 
+export interface WithdrawAccruedRewardsParams {
+  safeAddress: Address
+  rolesAddress: Address
+  p2pSuperformProxyAddress: Address
+  superformCalldata: Hex
+  value?: bigint | number
+  roleKey?: Hex
+  shouldRevertOnFailure?: boolean
+  operation?: SafeOperationValue
+}
+
 export interface RolesExecutionParams {
   rolesAddress: Address
   target: Address

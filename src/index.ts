@@ -8,6 +8,7 @@ import type {
   DepositParams,
   ExecutorConfig,
   PredictProxyAddressParams,
+  WithdrawAccruedRewardsParams,
   WithdrawParams
 } from './core/types'
 import { SafeOperation, type SafeOperationValue } from './utils/abis'
@@ -24,6 +25,7 @@ export type {
   ExecutorConfig,
   PredictProxyAddressParams,
   SafeOperationValue,
+  WithdrawAccruedRewardsParams,
   WithdrawParams
 }
 

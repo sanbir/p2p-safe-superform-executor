@@ -65,6 +65,72 @@ export const p2pSuperformProxyAbi = [
     stateMutability: 'nonpayable',
     inputs: [{ name: '_superformCalldata', type: 'bytes' }],
     outputs: []
+  },
+  {
+    type: 'function',
+    name: 'withdrawAccruedRewards',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: '_superformCalldata', type: 'bytes' }],
+    outputs: []
+  },
+  {
+    type: 'function',
+    name: 'calculateAccruedRewards',
+    stateMutability: 'view',
+    inputs: [
+      { name: '_vaultId', type: 'uint256' },
+      { name: '_asset', type: 'address' }
+    ],
+    outputs: [{ name: '', type: 'int256' }]
+  }
+] as const satisfies Abi
+
+const liqRequestComponents = [
+  { name: 'txData', type: 'bytes' },
+  { name: 'token', type: 'address' },
+  { name: 'interimToken', type: 'address' },
+  { name: 'bridgeId', type: 'uint8' },
+  { name: 'liqDstChainId', type: 'uint64' },
+  { name: 'nativeAmount', type: 'uint256' }
+] as const
+
+const singleVaultSfDataComponents = [
+  { name: 'superformId', type: 'uint256' },
+  { name: 'amount', type: 'uint256' },
+  { name: 'outputAmount', type: 'uint256' },
+  { name: 'maxSlippage', type: 'uint256' },
+  { name: 'liqRequest', type: 'tuple', components: liqRequestComponents },
+  { name: 'permit2data', type: 'bytes' },
+  { name: 'hasDstSwap', type: 'bool' },
+  { name: 'retain4626', type: 'bool' },
+  { name: 'receiverAddress', type: 'address' },
+  { name: 'receiverAddressSP', type: 'address' },
+  { name: 'extraFormData', type: 'bytes' }
+] as const
+
+export const superformRouterSingleWithdrawAbi = [
+  {
+    type: 'function',
+    name: 'singleDirectSingleVaultWithdraw',
+    stateMutability: 'payable',
+    inputs: [
+      {
+        name: 'req_',
+        type: 'tuple',
+        components: [{ name: 'superformData', type: 'tuple', components: singleVaultSfDataComponents }]
+      }
+    ],
+    outputs: []
+  }
+] as const satisfies Abi
+
+export const erc4626Abi = [
+  {
+    type: 'function',
+    name: 'asset',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'address' }]
   }
 ] as const satisfies Abi
 
