@@ -18,11 +18,19 @@ const withdrawStartResponse = {
   value: '0'
 }
 
-const mockFetch: typeof fetch = async (_url, _init) =>
-  new Response(JSON.stringify(withdrawStartResponse), {
+const mockFetch: typeof fetch = async (url, _init) => {
+  if (typeof url === 'string' && url.includes('/withdraw/calculate')) {
+    return new Response(JSON.stringify([{}]), {
+      status: 200,
+      headers: { 'content-type': 'application/json' }
+    })
+  }
+
+  return new Response(JSON.stringify(withdrawStartResponse), {
     status: 200,
     headers: { 'content-type': 'application/json' }
   })
+}
 
 const makeExecutor = () => {
   const writes: any[] = []

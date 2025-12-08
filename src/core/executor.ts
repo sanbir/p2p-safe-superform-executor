@@ -11,13 +11,13 @@ import {
   rolesModuleAbi,
   superformRouterSingleWithdrawAbi
 } from '../utils/abis'
-import { buildDepositBody, fetchDepositStart } from '../utils/deposit'
+import { buildDepositBody, fetchDepositCalculate, fetchDepositStart } from '../utils/deposit'
 import {
   buildProxyBatchClaimCalldata,
   decodeRewardsDistributorBatchClaim,
   fetchProtocolRewardsClaim as fetchProtocolRewardsClaimFromApi
 } from '../utils/rewards'
-import { buildWithdrawBody, fetchWithdrawStart } from '../utils/withdraw'
+import { buildWithdrawBody, fetchWithdrawCalculate, fetchWithdrawStart } from '../utils/withdraw'
 import type {
   BatchClaimParams,
   DepositParams,
@@ -90,9 +90,15 @@ export class P2pSafeSuperformExecutor {
       excludeBridges: params.excludeBridges
     })
 
-    const depositStart = await fetchDepositStart({
+    const calculateResult = await fetchDepositCalculate({
       apiKey,
       body,
+      fetcher: this.fetcher
+    })
+
+    const depositStart = await fetchDepositStart({
+      apiKey,
+      calculateResult,
       fetcher: this.fetcher
     })
 
@@ -157,9 +163,15 @@ export class P2pSafeSuperformExecutor {
       needInsurance: params.needInsurance
     })
 
-    const withdrawStart = await fetchWithdrawStart({
+    const calculateResult = await fetchWithdrawCalculate({
       apiKey,
       body,
+      fetcher: this.fetcher
+    })
+
+    const withdrawStart = await fetchWithdrawStart({
+      apiKey,
+      calculateResult,
       fetcher: this.fetcher
     })
 

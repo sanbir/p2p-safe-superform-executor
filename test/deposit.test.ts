@@ -19,11 +19,19 @@ const depositStartResponse = {
   value: '0'
 }
 
-const mockFetch: typeof fetch = async (_url, _init) =>
-  new Response(JSON.stringify(depositStartResponse), {
+const mockFetch: typeof fetch = async (url, _init) => {
+  if (typeof url === 'string' && url.includes('/deposit/calculate')) {
+    return new Response(JSON.stringify([{}]), {
+      status: 200,
+      headers: { 'content-type': 'application/json' }
+    })
+  }
+
+  return new Response(JSON.stringify(depositStartResponse), {
     status: 200,
     headers: { 'content-type': 'application/json' }
   })
+}
 
 const makeExecutor = () => {
   const writes: any[] = []

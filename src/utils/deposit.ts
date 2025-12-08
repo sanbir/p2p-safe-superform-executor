@@ -38,9 +38,36 @@ export const buildDepositBody = (params: {
   exclude_bridges: params.excludeBridges ?? []
 })
 
-export const fetchDepositStart = async (params: {
+export const fetchDepositCalculate = async (params: {
   apiKey: string
   body: ReturnType<typeof buildDepositBody>
+  fetcher?: typeof fetch
+}): Promise<unknown> => {
+  const fetchImpl = params.fetcher ?? fetch
+  const response = await fetchImpl('https://api.superform.xyz/deposit/calculate', {
+    method: 'POST',
+    headers: {
+      accept: 'application/json',
+      'content-type': 'application/json',
+      'SF-API-KEY': params.apiKey
+    },
+    body: JSON.stringify([params.body])
+  })
+
+  if (!response.ok) {
+    const body = await safeReadBody(response)
+    throw new Error(
+      `Failed to calculate deposit route (${response.status} ${response.statusText}): ${body}`
+    )
+  }
+
+  const json = (await response.json()) as unknown[]
+  return Array.isArray(json) ? json[0] : json
+}
+
+export const fetchDepositStart = async (params: {
+  apiKey: string
+  calculateResult: unknown
   fetcher?: typeof fetch
 }): Promise<DepositStartResponse> => {
   const fetchImpl = params.fetcher ?? fetch
@@ -51,7 +78,7 @@ export const fetchDepositStart = async (params: {
       'content-type': 'application/json',
       'SF-API-KEY': params.apiKey
     },
-    body: JSON.stringify(params.body)
+    body: JSON.stringify([params.calculateResult])
   })
 
   if (!response.ok) {
@@ -59,17 +86,30 @@ export const fetchDepositStart = async (params: {
     throw new Error(`Failed to fetch deposit calldata (${response.status} ${response.statusText}): ${body}`)
   }
 
-  const json = (await response.json()) as {
-    to: string
-    method: string
-    data: `0x${string}`
-    value: string
+  const json = (await response.json()) as
+    | {
+        to: string
+        method: string
+        data: `0x${string}`
+        value: string
+      }
+    | Array<{
+        to: string
+        method: string
+        data: `0x${string}`
+        value: string
+      }>
+
+  const payload = Array.isArray(json) ? json[0] : json
+
+  if (!payload) {
+    throw new Error('Deposit start response missing payload')
   }
   return {
-    to: getAddress(json.to),
-    method: json.method,
-    data: json.data,
-    value: json.value
+    to: getAddress(payload.to),
+    method: payload.method,
+    data: payload.data,
+    value: payload.value
   }
 }
 
