@@ -1,6 +1,6 @@
 # P2P Safe Superform Executor SDK
 
-Helper SDK to execute P2P Superform deposit and withdraw flows against a Safe configured with the Zodiac Roles module.
+Helper SDK to execute P2P Superform deposit/withdraw/rewards flows against a Safe configured with the Zodiac Roles module. Deposit/withdraw call the Superform API (`deposit/withdraw calculate + start`) under the hood; you only pass the high-level params.
 
 ## Installation
 
@@ -14,7 +14,7 @@ For the convenience helper `createExecutorFromEnv`, set:
 
 - `RPC_URL` — HTTPS RPC endpoint
 - `PRIVATE_KEY` — 0x-prefixed private key for the P2P module wallet (the address whitelisted in Roles)
-- `SF_API_KEY` — Superform API key (required for `batchClaim`)
+- `SF_API_KEY` — Superform API key (required for deposit/withdraw/batchClaim)
 
 ## Test
 
@@ -40,13 +40,12 @@ const executor = new P2pSafeSuperformExecutor({
 await executor.deposit({
   safeAddress,
   rolesAddress,
-  // the SDK will call Superform API deposit/start to produce calldata
-  fromTokenAddress,
-  amountIn,
-  vaultId,
+  fromTokenAddress,          // token you send
+  amountIn,                  // human-readable string
+  vaultId,                   // Superform vault id
   bridgeSlippage,
   swapSlippage,
-  routeType,
+  routeType,                 // e.g. 'output'
   clientBasisPointsOfDeposit,
   clientBasisPointsOfProfit,
   p2pSignerSigDeadline,
@@ -57,7 +56,15 @@ await executor.withdraw({
   safeAddress,
   rolesAddress,
   p2pSuperformProxyAddress,
-  superformCalldata
+  superformId,
+  vaultId,
+  superpositionsAmountIn,
+  toTokenAddress,
+  bridgeSlippage,
+  swapSlippage,
+  positiveSlippage,
+  isErc20: false,
+  routeType: 'output'
 })
 
 await executor.withdrawAccruedRewards({
