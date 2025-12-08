@@ -10,6 +10,7 @@ export interface ExecutorConfig<TTransport extends Transport = Transport, TChain
   defaultRoleKey?: Hex
   logger?: (message: string) => void
   superformApiKey?: string
+  fetcher?: typeof fetch
   /**
    * Validate that the provided Roles module is wired to the expected Safe address.
    * Disable if you want to skip the additional read calls.
@@ -20,7 +21,16 @@ export interface ExecutorConfig<TTransport extends Transport = Transport, TChain
 export interface DepositParams {
   safeAddress: Address
   rolesAddress: Address
-  yieldProtocolCalldata: Hex
+  fromTokenAddress: Address
+  amountIn: string
+  vaultId: string
+  bridgeSlippage: number
+  swapSlippage: number
+  routeType: string
+  excludeAmbs?: number[]
+  excludeLiquidityProviders?: number[]
+  excludeDexes?: number[]
+  excludeBridges?: number[]
   clientBasisPointsOfDeposit: bigint | number
   clientBasisPointsOfProfit: bigint | number
   p2pSignerSigDeadline: bigint | number

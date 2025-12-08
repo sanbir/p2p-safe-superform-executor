@@ -28,7 +28,7 @@ npm test
 import { createExecutorFromEnv, P2pSafeSuperformExecutor } from '@p2p-org/safe-superform-executor'
 import { optimism } from 'viem/chains'
 
-// Option 1: build clients from PRIVATE_KEY/RPC_URL
+// Option 1: build clients from PRIVATE_KEY/RPC_URL (and SF_API_KEY for Superform API)
 const executor = createExecutorFromEnv({ chain: optimism })
 
 // Option 2: provide any wallet/public client pair (WalletConnect, keystore, etc.)
@@ -40,7 +40,13 @@ const executor = new P2pSafeSuperformExecutor({
 await executor.deposit({
   safeAddress,
   rolesAddress,
-  yieldProtocolCalldata,
+  // the SDK will call Superform API deposit/start to produce calldata
+  fromTokenAddress,
+  amountIn,
+  vaultId,
+  bridgeSlippage,
+  swapSlippage,
+  routeType,
   clientBasisPointsOfDeposit,
   clientBasisPointsOfProfit,
   p2pSignerSigDeadline,

@@ -11,6 +11,7 @@ import {
   rolesModuleAbi,
   superformRouterSingleWithdrawAbi
 } from '../utils/abis'
+import { buildDepositBody, fetchDepositStart } from '../utils/deposit'
 import {
   buildProxyBatchClaimCalldata,
   decodeRewardsDistributorBatchClaim,
@@ -36,6 +37,7 @@ export class P2pSafeSuperformExecutor {
   > &
     ExecutorConfig
   private readonly log: (message: string) => void
+  private readonly fetcher: typeof fetch
 
   constructor(config: ExecutorConfig) {
     this.walletClient = config.walletClient
@@ -52,14 +54,52 @@ export class P2pSafeSuperformExecutor {
       superformApiKey: config.superformApiKey ?? process.env.SF_API_KEY
     }
     this.log = config.logger ?? ((message: string) => console.info(message))
+    this.fetcher = config.fetcher ?? fetch
   }
 
   async deposit(params: DepositParams): Promise<Hex> {
+    const chainId = this.walletClient.chain?.id
+    if (!chainId) {
+      throw new Error('walletClient.chain.id is required for deposit')
+    }
+    const apiKey = this.config.superformApiKey
+    if (!apiKey) {
+      throw new Error('superformApiKey (or SF_API_KEY in env) is required for deposit')
+    }
+
+    const proxyAddress = await this.predictProxyAddress({
+      client: params.safeAddress,
+      clientBasisPointsOfDeposit: params.clientBasisPointsOfDeposit,
+      clientBasisPointsOfProfit: params.clientBasisPointsOfProfit
+    })
+
+    const body = buildDepositBody({
+      userAddress: proxyAddress,
+      fromTokenAddress: params.fromTokenAddress,
+      fromChainId: chainId,
+      amountIn: params.amountIn,
+      refundAddress: proxyAddress,
+      vaultId: params.vaultId,
+      bridgeSlippage: params.bridgeSlippage,
+      swapSlippage: params.swapSlippage,
+      routeType: params.routeType,
+      excludeAmbs: params.excludeAmbs,
+      excludeLiquidityProviders: params.excludeLiquidityProviders,
+      excludeDexes: params.excludeDexes,
+      excludeBridges: params.excludeBridges
+    })
+
+    const depositStart = await fetchDepositStart({
+      apiKey,
+      body,
+      fetcher: this.fetcher
+    })
+
     const depositData = encodeFunctionData({
       abi: p2pSuperformProxyFactoryAbi,
       functionName: 'deposit',
       args: [
-        params.yieldProtocolCalldata,
+        depositStart.data,
         this.normalizeUint48(params.clientBasisPointsOfDeposit, 'clientBasisPointsOfDeposit'),
         this.normalizeUint48(params.clientBasisPointsOfProfit, 'clientBasisPointsOfProfit'),
         this.normalizeBigInt(params.p2pSignerSigDeadline, 'p2pSignerSigDeadline'),
@@ -75,7 +115,11 @@ export class P2pSafeSuperformExecutor {
       rolesAddress: params.rolesAddress,
       target: this.config.p2pSuperformProxyFactoryAddress,
       data: depositData,
-      value: this.normalizeBigInt(params.value, 'value', 0n),
+      value: this.normalizeBigInt(
+        params.value ?? (depositStart.value ? BigInt(depositStart.value) : undefined),
+        'value',
+        0n
+      ),
       roleKey: params.roleKey,
       shouldRevertOnFailure: params.shouldRevertOnFailure,
       operation: params.operation,

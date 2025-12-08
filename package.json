@@ -1,6 +1,6 @@
 {
   "name": "@p2p-org/safe-superform-executor",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "P2P.org Safe Superform executor SDK for delegating Superform actions via Zodiac Roles",
   "license": "MIT",
   "type": "module",
